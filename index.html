@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>字幕 + 多平台文案工具</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>字幕 + 多平台文案</h1>
+    <p class="subtitle">上传视频，或粘贴字幕，一键生成小红书 / 公众号 / 抖音文案</p>
+  </header>
+
+  <main class="container">
+    <!-- 登录 / 额度 -->
+    <section class="auth-card" id="authCard">
+      <input id="loginUser" class="auth-input" placeholder="用户名" autocomplete="username" />
+      <input id="loginPass" class="auth-input" type="password" placeholder="密码" autocomplete="current-password" />
+      <button id="loginBtn" class="primary-btn">登录</button>
+      <span id="authMsg" class="auth-msg"></span>
+    </section>
+    <section class="quota-bar" id="quotaBar" style="display:none">
+      <span>👤 <b id="quotaUser"></b></span>
+      <span class="quota-pill">剩余 <b id="quotaRemain"></b> / <span id="quotaTotal"></span> 分钟</span>
+      <button id="logoutBtn" class="copy-btn">退出</button>
+    </section>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="video">📹 上传视频</div>
+      <div class="tab" data-tab="text">📝 字幕文本</div>
+    </div>
+
+    <!-- 视频模式 -->
+    <section class="upload-card" id="panel-video">
+      <label class="file-label">
+        <input type="file" id="videoFile" accept="video/*" />
+        <span id="fileName">选择视频文件</span>
+      </label>
+      <button id="processBtn" class="primary-btn">开始处理</button>
+      <div id="progress" class="progress"></div>
+      <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+      <div id="modeHint" class="mode-hint"></div>
+    </section>
+
+    <!-- 文本模式：粘贴或上传 .srt/.txt -->
+    <section class="upload-card" id="panel-text" style="display:none">
+      <label class="file-label">
+        <input type="file" id="subtitleFile" accept=".srt,.txt,text/plain" />
+        <span id="textFileName">或上传 .srt / .txt 文件</span>
+      </label>
+      <textarea id="subtitleInput" class="subtitle-input" placeholder="直接粘贴 SRT 或字幕文本，也可上传文件…"></textarea>
+      <div class="mode-hint">文本内容无需上传视频，直接生成文案，更快更省。</div>
+    </section>
+
+    <section id="resultArea" class="result-area" style="display:none">
+      <div class="card">
+        <div class="card-head">
+          <h3>📝 提取字幕</h3>
+          <button class="copy-btn" data-target="subtitleText">复制</button>
+        </div>
+        <pre id="subtitleText" class="content"></pre>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>📕 小红书文案 ×3</h3>
+          <button class="copy-btn" data-target="xhsText">复制</button>
+        </div>
+        <pre id="xhsText" class="content"></pre>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>📰 公众号文章</h3>
+          <button class="copy-btn" data-target="gzhText">复制</button>
+        </div>
+        <pre id="gzhText" class="content"></pre>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>🎬 抖音口播脚本</h3>
+          <button class="copy-btn" data-target="dyText">复制</button>
+        </div>
+        <pre id="dyText" class="content"></pre>
+      </div>
+
+      <button id="downloadAllBtn" class="primary-btn">下载全部（TXT）</button>
+    </section>
+  </main>
+
+  <!-- ffmpeg.wasm 0.11（经典 worker，无需 SharedArrayBuffer，OSS 静态托管可直接用） -->
+  <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js"></script>
+  <!-- 阿里云 OSS SDK（大文件直传用） -->
+  <script src="https://gosspublic.alicdn.com/aliyun-oss-sdk-6.18.0.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
