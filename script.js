@@ -179,9 +179,8 @@ $("subtitleFile").addEventListener("change", async (e) => {
   $("textFileName").textContent = f.name;
 });
 
-$("processBtn").addEventListener("click", async () => {
+async function onProcess(btn) {
   if (!getToken()) { alert("请先登录后再处理"); showLogin(); return; }
-  const btn = $("processBtn");
   btn.disabled = true;
   try {
     let json;
@@ -217,7 +216,10 @@ $("processBtn").addEventListener("click", async () => {
   } finally {
     btn.disabled = false;
   }
-});
+}
+
+$("processBtn").addEventListener("click", () => onProcess($("processBtn")));
+$("processTextBtn").addEventListener("click", () => onProcess($("processTextBtn")));
 
 function renderResult(json) {
   $("subtitleText").textContent = json.subtitle || "";

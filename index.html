@@ -31,6 +31,10 @@
       <div class="tab" data-tab="text">📝 字幕文本</div>
     </div>
 
+    <!-- 进度条（两个 tab 共用，避免文本模式下面板隐藏看不到提示） -->
+    <div id="progress" class="progress"></div>
+    <div class="progress-bar" id="progressBar"><div id="progressFill" class="progress-fill"></div></div>
+
     <!-- 视频模式 -->
     <section class="upload-card" id="panel-video">
       <label class="file-label">
@@ -38,8 +42,6 @@
         <span id="fileName">选择视频文件</span>
       </label>
       <button id="processBtn" class="primary-btn">开始处理</button>
-      <div id="progress" class="progress"></div>
-      <div class="progress-bar" id="progressBar"><div id="progressFill" class="progress-fill"></div></div>
       <div id="modeHint" class="mode-hint"></div>
     </section>
 
@@ -50,6 +52,7 @@
         <span id="textFileName">或上传 .srt / .txt 文件</span>
       </label>
       <textarea id="subtitleInput" class="subtitle-input" placeholder="直接粘贴 SRT 或字幕文本，也可上传文件…"></textarea>
+      <button id="processTextBtn" class="primary-btn">开始处理</button>
       <div class="mode-hint">文本内容无需上传视频，直接生成文案，更快更省。</div>
     </section>
 
