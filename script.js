@@ -46,7 +46,8 @@ function setProgress(msg, percent) {
 // 浏览器内提取音频：视频 -> mp3 (16k 单声道，省体积)
 async function extractAudio(file) {
   await loadFFmpeg();
-  ffmpeg.FS("writeFile", "input.mp4", await fetchFile(file));
+  // fetchFile 在全局 FFmpeg 对象上（0.11 主库导出），不能直接用 loadFFmpeg 内的局部变量
+  ffmpeg.FS("writeFile", "input.mp4", await FFmpeg.fetchFile(file));
   await ffmpeg.run(
     "-i", "input.mp4",
     "-vn", "-ac", "1", "-ar", "16000",
