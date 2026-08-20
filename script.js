@@ -7,6 +7,12 @@ const MAX_BROWSER_SIZE = 1024 * 1024 * 1024; // 1GB
 
 const $ = (id) => document.getElementById(id);
 
+// 当前可见面板勾选的文案平台（不勾=只出字幕）
+function getPlatforms() {
+  const panel = currentTab === "video" ? "#panel-video" : "#panel-text";
+  return [...document.querySelectorAll(panel + " .plat-cb:checked")].map((c) => c.value);
+}
+
 // ---------- 登录态 ----------
 const TOKEN_KEY = "subtitle_tool_token";
 function getToken() { return localStorage.getItem(TOKEN_KEY) || ""; }
@@ -117,6 +123,7 @@ async function processSmall(file) {
   const form = new FormData();
   form.append("audio", audioBlob, "audio.mp3");
   form.append("duration_sec", String(window.__videoDuration || 0));
+  form.append("platforms", JSON.stringify(getPlatforms()));
   const json = await xhrPostForm(
     API_BASE + "/api/process",
     form,
@@ -140,7 +147,7 @@ async function processLarge(file) {
   const resp = await fetch(API_BASE + "/api/process-video", {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify({ object_key, duration_sec: window.__videoDuration || 0 }),
+    body: JSON.stringify({ object_key, duration_sec: window.__videoDuration || 0, platforms: getPlatforms() }),
   });
   const json = await resp.json();
   if (json.error) throw new Error(json.error);
@@ -190,11 +197,15 @@ async function onProcess(btn) {
     if (currentTab === "video") {
       const file = $("videoFile").files[0];
       if (!file) { alert("请先选择视频文件"); btn.disabled = false; return; }
+      const platHint = (() => {
+        const n = getPlatforms().length;
+        return n ? `，将生成 ${n} 篇文案` : "，仅生成字幕";
+      })();
       if (file.size <= MAX_BROWSER_SIZE) {
-        $("modeHint").textContent = "小文件模式：浏览器本地提取音频（快、省）";
+        $("modeHint").textContent = "小文件模式：浏览器本地提取音频（快、省）" + platHint;
         json = await processSmall(file);
       } else {
-        $("modeHint").textContent = "大文件模式：直传云端处理（>1GB 自动切换）";
+        $("modeHint").textContent = "大文件模式：直传云端处理（>1GB 自动切换）" + platHint;
         json = await processLarge(file);
       }
     } else {
@@ -205,7 +216,7 @@ async function onProcess(btn) {
       const resp = await fetch(API_BASE + "/api/from-text", {
         method: "POST",
         headers: authHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, platforms: getPlatforms() }),
       });
       const j = await resp.json();
       if (j.error) throw new Error(j.error);
@@ -229,9 +240,9 @@ function renderResult(json) {
   $("subtitleText").textContent = json.subtitle || "";
   $("srtText").textContent = json.srt || "(本次识别未产生时间轴信息，SRT 为空)";
   const c = json.content || {};
-  $("xhsText").textContent = c.xiaohongshu || "";
-  $("gzhText").textContent = c.gongzhonghao || "";
-  $("dyText").textContent = c.douyin || "";
+  $("xhsText").textContent = c.xiaohongshu || "（未生成：处理前勾选平台）";
+  $("gzhText").textContent = c.gongzhonghao || "（未生成：处理前勾选平台）";
+  $("dyText").textContent = c.douyin || "（未生成：处理前勾选平台）";
   $("resultArea").style.display = "block";
   $("resultArea").scrollIntoView({ behavior: "smooth" });
 }

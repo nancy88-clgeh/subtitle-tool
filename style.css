@@ -140,6 +140,18 @@ body {
 .admin-table th { color: #888; font-weight: 600; }
 .admin-table td button { margin-right: 4px; }
 
+/* 平台多选 */
+.plat-sel {
+  margin: 10px 0;
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 13px;
+  color: #555;
+}
+.plat-sel label { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+
 .copy-btn {
   background: #f0f0ff;
   color: #6a5acd;

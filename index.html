@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>字幕 + 多平台文案工具</title>
-  <link rel="stylesheet" href="style.css?v=3" />
+  <link rel="stylesheet" href="style.css?v=4" />
 </head>
 <body>
   <header class="topbar">
@@ -61,6 +61,12 @@
         <span id="fileName">选择视频文件</span>
       </label>
       <button id="processBtn" class="primary-btn">开始处理</button>
+      <div class="plat-sel">
+        <span class="mode-hint">生成文案平台（不勾选 = 只生成字幕）：</span>
+        <label><input type="checkbox" class="plat-cb" value="xiaohongshu" /> 小红书</label>
+        <label><input type="checkbox" class="plat-cb" value="gongzhonghao" /> 公众号</label>
+        <label><input type="checkbox" class="plat-cb" value="douyin" /> 抖音</label>
+      </div>
       <div id="modeHint" class="mode-hint"></div>
     </section>
 
@@ -72,6 +78,12 @@
       </label>
       <textarea id="subtitleInput" class="subtitle-input" placeholder="直接粘贴 SRT 或字幕文本，也可上传文件…"></textarea>
       <button id="processTextBtn" class="primary-btn">开始处理</button>
+      <div class="plat-sel">
+        <span class="mode-hint">生成文案平台（不勾选 = 仅清洗字幕文本）：</span>
+        <label><input type="checkbox" class="plat-cb" value="xiaohongshu" /> 小红书</label>
+        <label><input type="checkbox" class="plat-cb" value="gongzhonghao" /> 公众号</label>
+        <label><input type="checkbox" class="plat-cb" value="douyin" /> 抖音</label>
+      </div>
       <div class="mode-hint">文本内容无需上传视频，直接生成文案，更快更省。</div>
     </section>
 
@@ -125,6 +137,6 @@
   <script src="https://ffmpeg-core-0801.oss-cn-beijing.aliyuncs.com/ffmpeg.min.js"></script>
   <!-- 阿里云 OSS SDK（大文件直传用） -->
   <script src="https://gosspublic.alicdn.com/aliyun-oss-sdk-6.18.0.min.js"></script>
-  <script src="script.js?v=7"></script>
+  <script src="script.js?v=8"></script>
 </body>
 </html>
