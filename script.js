@@ -23,6 +23,8 @@ async function loadFFmpeg() {
   const { createFFmpeg, fetchFile } = FFmpeg;
   ffmpeg = createFFmpeg({
     log: false,
+    // 单线程核心 core-st：无需 SharedArrayBuffer / COOP-COEP，GitHub Pages 可直接用
+    mainName: "main",
     corePath: "https://ffmpeg-core-0801.oss-cn-beijing.aliyuncs.com/ffmpeg-core.js",
   });
   await ffmpeg.load();

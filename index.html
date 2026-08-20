@@ -93,10 +93,10 @@
     </section>
   </main>
 
-  <!-- ffmpeg.wasm 0.11（经典 worker，无需 SharedArrayBuffer，OSS 静态托管可直接用） -->
+  <!-- ffmpeg.wasm 0.11 + 单线程核心 core-st（无需 SharedArrayBuffer / COOP-COEP，GitHub Pages 可直接用） -->
   <script src="https://ffmpeg-core-0801.oss-cn-beijing.aliyuncs.com/ffmpeg.min.js"></script>
   <!-- 阿里云 OSS SDK（大文件直传用） -->
   <script src="https://gosspublic.alicdn.com/aliyun-oss-sdk-6.18.0.min.js"></script>
-  <script src="script.js?v=2"></script>
+  <script src="script.js?v=3"></script>
 </body>
 </html>
