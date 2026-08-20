@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>字幕 + 多平台文案工具</title>
-  <link rel="stylesheet" href="style.css?v=2" />
+  <link rel="stylesheet" href="style.css?v=3" />
 </head>
 <body>
   <header class="topbar">
@@ -23,7 +23,26 @@
     <section class="quota-bar" id="quotaBar" style="display:none">
       <span>👤 <b id="quotaUser"></b></span>
       <span class="quota-pill">剩余 <b id="quotaRemain"></b> / <span id="quotaTotal"></span> 分钟</span>
+      <button id="adminBtn" class="copy-btn" style="display:none">👥 用户管理</button>
       <button id="logoutBtn" class="copy-btn">退出</button>
+    </section>
+
+    <!-- 管理员面板：仅 admin 账号可见 -->
+    <section id="adminPanel" class="upload-card" style="display:none">
+      <h3 style="margin:0 0 10px">👥 用户管理</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <input id="admNewUser" class="auth-input" placeholder="新用户名" style="flex:1;min-width:120px" />
+        <input id="admNewPass" class="auth-input" type="password" placeholder="密码" style="flex:1;min-width:120px" />
+        <input id="admNewQuota" class="auth-input" type="number" placeholder="配额(分钟)" style="width:110px" />
+        <button id="admCreateBtn" class="primary-btn">创建用户</button>
+      </div>
+      <div id="admMsg" class="auth-msg"></div>
+      <table class="admin-table" id="admTable">
+        <thead>
+          <tr><th>用户</th><th>已用/配额</th><th>单条上限</th><th>创建时间</th><th>操作</th></tr>
+        </thead>
+        <tbody id="admTbody"></tbody>
+      </table>
     </section>
 
     <div class="tabs">
@@ -67,6 +86,15 @@
 
       <div class="card">
         <div class="card-head">
+          <h3>📄 SRT 字幕（带时间轴）</h3>
+          <button class="copy-btn" data-target="srtText">复制</button>
+          <button id="downloadSrtBtn" class="copy-btn">下载 .srt</button>
+        </div>
+        <pre id="srtText" class="content"></pre>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
           <h3>📕 小红书文案 ×3</h3>
           <button class="copy-btn" data-target="xhsText">复制</button>
         </div>
@@ -97,6 +125,6 @@
   <script src="https://ffmpeg-core-0801.oss-cn-beijing.aliyuncs.com/ffmpeg.min.js"></script>
   <!-- 阿里云 OSS SDK（大文件直传用） -->
   <script src="https://gosspublic.alicdn.com/aliyun-oss-sdk-6.18.0.min.js"></script>
-  <script src="script.js?v=4"></script>
+  <script src="script.js?v=7"></script>
 </body>
 </html>

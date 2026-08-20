@@ -218,6 +218,7 @@ async function onProcess(btn) {
     setProgress("处理失败：" + err.message, null);
   } finally {
     btn.disabled = false;
+    refreshQuota(); // 处理完立即刷新额度显示（扣减在服务端已生效）
   }
 }
 
@@ -226,6 +227,7 @@ $("processTextBtn").addEventListener("click", () => onProcess($("processTextBtn"
 
 function renderResult(json) {
   $("subtitleText").textContent = json.subtitle || "";
+  $("srtText").textContent = json.srt || "(本次识别未产生时间轴信息，SRT 为空)";
   const c = json.content || {};
   $("xhsText").textContent = c.xiaohongshu || "";
   $("gzhText").textContent = c.gongzhonghao || "";
@@ -244,6 +246,18 @@ document.querySelectorAll(".copy-btn").forEach((b) => {
       setTimeout(() => (b.textContent = old), 1200);
     });
   });
+});
+
+// 下载 SRT 字幕文件
+$("downloadSrtBtn").addEventListener("click", () => {
+  const srt = $("srtText").textContent;
+  if (!srt || srt.startsWith("(本次识别")) { alert("暂无可下载的 SRT 字幕"); return; }
+  const blob = new Blob([srt], { type: "application/x-subrip;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "字幕.srt";
+  a.click();
+  URL.revokeObjectURL(a.href);
 });
 
 // 下载全部
@@ -277,6 +291,9 @@ function showQuota(j) {
   $("quotaUser").textContent = j.username;
   $("quotaRemain").textContent = Math.max(0, j.quota_minutes - j.used_minutes).toFixed(2);
   $("quotaTotal").textContent = j.quota_minutes;
+  // admin 账号显示管理入口
+  $("adminBtn").style.display = j.username === "admin" ? "inline-block" : "none";
+  if (j.username !== "admin") $("adminPanel").style.display = "none";
 }
 async function refreshQuota() {
   if (!getToken()) { showLogin(); return; }
@@ -307,5 +324,76 @@ $("loginBtn").addEventListener("click", async () => {
 $("logoutBtn").addEventListener("click", () => {
   localStorage.removeItem(TOKEN_KEY);
   showLogin();
+});
+
+// ---------- 管理员面板 ----------
+async function apiAdmin(path, body) {
+  const resp = await fetch(API_BASE + path, {
+    method: body ? "POST" : "GET",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  return resp.json();
+}
+
+async function loadAdmUsers() {
+  try {
+    const j = await apiAdmin("/api/admin/list-users");
+    if (j.error) { $("admMsg").textContent = j.error; return; }
+    const tbody = $("admTbody");
+    tbody.innerHTML = "";
+    (j.users || []).forEach((u) => {
+      const tr = document.createElement("tr");
+      const delBtn = u.username === "admin"
+        ? ""
+        : `<button class="copy-btn" data-op="del" data-user="${u.username}">删除</button>`;
+      tr.innerHTML = `
+        <td>${u.username}</td>
+        <td>${u.used_minutes} / ${u.quota_minutes}</td>
+        <td>${u.max_single_min}</td>
+        <td>${u.created_at || "-"}</td>
+        <td>
+          <button class="copy-btn" data-op="quota" data-user="${u.username}">+10分钟</button>
+          ${delBtn}
+        </td>`;
+      tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll("button").forEach((b) => b.addEventListener("click", async () => {
+      const user = b.dataset.user;
+      if (b.dataset.op === "del") {
+        if (!confirm("确认删除用户 " + user + "？此操作不可恢复。")) return;
+        const r = await apiAdmin("/api/admin/delete-user", { username: user });
+        $("admMsg").textContent = r.ok ? "已删除用户 " + user : (r.error || "删除失败");
+      } else if (b.dataset.op === "quota") {
+        const r = await apiAdmin("/api/admin/add-quota", { username: user, add_minutes: 10 });
+        $("admMsg").textContent = r.ok
+          ? user + " 配额 +10 分钟（现 " + r.quota_minutes + "）"
+          : (r.error || "加配额失败");
+      }
+      loadAdmUsers();
+    }));
+  } catch (e) {
+    $("admMsg").textContent = "加载用户列表失败：" + e.message;
+  }
+}
+
+$("adminBtn").addEventListener("click", () => {
+  const p = $("adminPanel");
+  const show = p.style.display === "none";
+  p.style.display = show ? "block" : "none";
+  if (show) loadAdmUsers();
+});
+
+$("admCreateBtn").addEventListener("click", async () => {
+  const username = $("admNewUser").value.trim();
+  const password = $("admNewPass").value;
+  const quota = parseFloat($("admNewQuota").value) || 180;
+  if (!username || !password) { $("admMsg").textContent = "用户名和密码必填"; return; }
+  const r = await apiAdmin("/api/admin/create-user", { username, password, quota_minutes: quota });
+  $("admMsg").textContent = r.ok ? "已创建用户 " + username : (r.error || "创建失败");
+  if (r.ok) {
+    $("admNewUser").value = ""; $("admNewPass").value = ""; $("admNewQuota").value = "";
+  }
+  loadAdmUsers();
 });
 refreshQuota();

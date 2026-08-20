@@ -125,6 +125,21 @@ body {
 }
 .card-head h3 { font-size: 16px; }
 
+/* 管理面板表格 */
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-top: 8px;
+}
+.admin-table th, .admin-table td {
+  border-bottom: 1px solid #eee;
+  padding: 6px 8px;
+  text-align: left;
+}
+.admin-table th { color: #888; font-weight: 600; }
+.admin-table td button { margin-right: 4px; }
+
 .copy-btn {
   background: #f0f0ff;
   color: #6a5acd;
