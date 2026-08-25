@@ -33,7 +33,8 @@
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
         <input id="admNewUser" class="auth-input" placeholder="新用户名" style="flex:1;min-width:120px" />
         <input id="admNewPass" class="auth-input" type="password" placeholder="密码" style="flex:1;min-width:120px" />
-        <input id="admNewQuota" class="auth-input" type="number" placeholder="配额(分钟)" style="width:110px" />
+        <input id="admNewQuota" class="auth-input" type="number" placeholder="总配额(分钟)" style="width:120px" />
+        <input id="admNewMax" class="auth-input" type="number" placeholder="单条上限(分钟)" style="width:130px" />
         <button id="admCreateBtn" class="primary-btn">创建用户</button>
       </div>
       <div id="admMsg" class="auth-msg"></div>
@@ -67,6 +68,14 @@
         <label><input type="checkbox" class="plat-cb" value="gongzhonghao" /> 公众号</label>
         <label><input type="checkbox" class="plat-cb" value="douyin" /> 抖音</label>
       </div>
+      <div class="plat-sel">
+        <span class="mode-hint">翻译成（不勾选 = 不翻译，每种语言 +1 分钟）：</span>
+        <label><input type="checkbox" class="lang-cb" value="en" /> 英语</label>
+        <label><input type="checkbox" class="lang-cb" value="ja" /> 日语</label>
+        <label><input type="checkbox" class="lang-cb" value="ko" /> 韩语</label>
+        <label><input type="checkbox" class="lang-cb" value="fr" /> 法语</label>
+        <label><input type="checkbox" class="lang-cb" value="es" /> 西班牙语</label>
+      </div>
       <div id="modeHint" class="mode-hint"></div>
     </section>
 
@@ -83,6 +92,14 @@
         <label><input type="checkbox" class="plat-cb" value="xiaohongshu" /> 小红书</label>
         <label><input type="checkbox" class="plat-cb" value="gongzhonghao" /> 公众号</label>
         <label><input type="checkbox" class="plat-cb" value="douyin" /> 抖音</label>
+      </div>
+      <div class="plat-sel">
+        <span class="mode-hint">翻译成（不勾选 = 不翻译，每种语言 +1 分钟）：</span>
+        <label><input type="checkbox" class="lang-cb" value="en" /> 英语</label>
+        <label><input type="checkbox" class="lang-cb" value="ja" /> 日语</label>
+        <label><input type="checkbox" class="lang-cb" value="ko" /> 韩语</label>
+        <label><input type="checkbox" class="lang-cb" value="fr" /> 法语</label>
+        <label><input type="checkbox" class="lang-cb" value="es" /> 西班牙语</label>
       </div>
       <div class="mode-hint">文本内容无需上传视频，直接生成文案，更快更省。</div>
     </section>
@@ -129,6 +146,7 @@
         <pre id="dyText" class="content"></pre>
       </div>
 
+      <div id="translationsArea"></div>
       <button id="downloadAllBtn" class="primary-btn">下载全部（TXT）</button>
     </section>
   </main>
@@ -137,6 +155,6 @@
   <script src="https://ffmpeg-core-0801.oss-cn-beijing.aliyuncs.com/ffmpeg.min.js"></script>
   <!-- 阿里云 OSS SDK（大文件直传用） -->
   <script src="https://gosspublic.alicdn.com/aliyun-oss-sdk-6.18.0.min.js"></script>
-  <script src="script.js?v=8"></script>
+  <script src="script.js?v=10"></script>
 </body>
 </html>

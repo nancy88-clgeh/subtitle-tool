@@ -13,6 +13,12 @@ function getPlatforms() {
   return [...document.querySelectorAll(panel + " .plat-cb:checked")].map((c) => c.value);
 }
 
+// 当前可见面板勾选的翻译目标语言（不勾=不翻译）
+function getTargetLangs() {
+  const panel = currentTab === "video" ? "#panel-video" : "#panel-text";
+  return [...document.querySelectorAll(panel + " .lang-cb:checked")].map((c) => c.value);
+}
+
 // ---------- 登录态 ----------
 const TOKEN_KEY = "subtitle_tool_token";
 function getToken() { return localStorage.getItem(TOKEN_KEY) || ""; }
@@ -124,6 +130,7 @@ async function processSmall(file) {
   form.append("audio", audioBlob, "audio.mp3");
   form.append("duration_sec", String(window.__videoDuration || 0));
   form.append("platforms", JSON.stringify(getPlatforms()));
+  form.append("target_langs", JSON.stringify(getTargetLangs()));
   const json = await xhrPostForm(
     API_BASE + "/api/process",
     form,
@@ -147,7 +154,7 @@ async function processLarge(file) {
   const resp = await fetch(API_BASE + "/api/process-video", {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify({ object_key, duration_sec: window.__videoDuration || 0, platforms: getPlatforms() }),
+    body: JSON.stringify({ object_key, duration_sec: window.__videoDuration || 0, platforms: getPlatforms(), target_langs: getTargetLangs() }),
   });
   const json = await resp.json();
   if (json.error) throw new Error(json.error);
@@ -216,7 +223,7 @@ async function onProcess(btn) {
       const resp = await fetch(API_BASE + "/api/from-text", {
         method: "POST",
         headers: authHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ text, platforms: getPlatforms() }),
+        body: JSON.stringify({ text, platforms: getPlatforms(), target_langs: getTargetLangs() }),
       });
       const j = await resp.json();
       if (j.error) throw new Error(j.error);
@@ -236,6 +243,33 @@ async function onProcess(btn) {
 $("processBtn").addEventListener("click", () => onProcess($("processBtn")));
 $("processTextBtn").addEventListener("click", () => onProcess($("processTextBtn")));
 
+function makeCard(title, text) {
+  const card = document.createElement("div");
+  card.className = "card";
+  const head = document.createElement("div");
+  head.className = "card-head";
+  const h3 = document.createElement("h3");
+  h3.textContent = title;
+  const btn = document.createElement("button");
+  btn.className = "copy-btn";
+  btn.textContent = "复制";
+  btn.addEventListener("click", () => {
+    navigator.clipboard.writeText(text).then(() => {
+      const old = btn.textContent;
+      btn.textContent = "已复制";
+      setTimeout(() => (btn.textContent = old), 1200);
+    });
+  });
+  head.appendChild(h3);
+  head.appendChild(btn);
+  const pre = document.createElement("pre");
+  pre.className = "content";
+  pre.textContent = text;
+  card.appendChild(head);
+  card.appendChild(pre);
+  return card;
+}
+
 function renderResult(json) {
   $("subtitleText").textContent = json.subtitle || "";
   $("srtText").textContent = json.srt || "(本次识别未产生时间轴信息，SRT 为空)";
@@ -243,6 +277,23 @@ function renderResult(json) {
   $("xhsText").textContent = c.xiaohongshu || "（未生成：处理前勾选平台）";
   $("gzhText").textContent = c.gongzhonghao || "（未生成：处理前勾选平台）";
   $("dyText").textContent = c.douyin || "（未生成：处理前勾选平台）";
+  // 渲染翻译结果（如有）
+  window.__lastTranslations = json.translations || {};
+  const ta = $("translationsArea");
+  ta.innerHTML = "";
+  const LANG_NAMES_FE = { en: "英语", ja: "日语", ko: "韩语", fr: "法语", es: "西班牙语", de: "德语", ru: "俄语", pt: "葡萄牙语", it: "意大利语" };
+  const PLAT_NAMES = { xiaohongshu: "小红书文案", gongzhonghao: "公众号文章", douyin: "抖音口播脚本" };
+  for (const [lang, data] of Object.entries(window.__lastTranslations)) {
+    const ln = LANG_NAMES_FE[lang] || lang;
+    if (data && data.subtitle) {
+      ta.appendChild(makeCard(`🌐 ${ln}字幕译文`, data.subtitle));
+    }
+    for (const pk of ["xiaohongshu", "gongzhonghao", "douyin"]) {
+      if (data && data[pk]) {
+        ta.appendChild(makeCard(`🌐 ${ln}${PLAT_NAMES[pk]}`, data[pk]));
+      }
+    }
+  }
   $("resultArea").style.display = "block";
   $("resultArea").scrollIntoView({ behavior: "smooth" });
 }
@@ -282,6 +333,18 @@ $("downloadAllBtn").addEventListener("click", () => {
   let out = "";
   for (const [k, v] of Object.entries(c)) {
     out += "========== " + k + " ==========\n\n" + v + "\n\n";
+  }
+  // 翻译内容（如有）
+  const tr = (window.__lastTranslations || {});
+  const LANG_NAMES_FE = { en: "英语", ja: "日语", ko: "韩语", fr: "法语", es: "西班牙语", de: "德语", ru: "俄语", pt: "葡萄牙语", it: "意大利语" };
+  const PLAT_NAMES = { subtitle: "字幕", xiaohongshu: "小红书文案", gongzhonghao: "公众号文章", douyin: "抖音口播脚本" };
+  for (const [lang, data] of Object.entries(tr)) {
+    const ln = LANG_NAMES_FE[lang] || lang;
+    for (const [k, v] of Object.entries(data)) {
+      if (typeof v === "string" && v) {
+        out += "========== " + ln + (PLAT_NAMES[k] || k) + " ==========\n\n" + v + "\n\n";
+      }
+    }
   }
   const blob = new Blob([out], { type: "text/plain;charset=utf-8" });
   const a = document.createElement("a");
@@ -399,11 +462,16 @@ $("admCreateBtn").addEventListener("click", async () => {
   const username = $("admNewUser").value.trim();
   const password = $("admNewPass").value;
   const quota = parseFloat($("admNewQuota").value) || 180;
+  const maxSingle = parseFloat($("admNewMax").value) || 0;
   if (!username || !password) { $("admMsg").textContent = "用户名和密码必填"; return; }
-  const r = await apiAdmin("/api/admin/create-user", { username, password, quota_minutes: quota });
+  // max_single_min 传 0 = 后端默认与总配额一致
+  const r = await apiAdmin("/api/admin/create-user", {
+    username, password, quota_minutes: quota, max_single_min: maxSingle,
+  });
   $("admMsg").textContent = r.ok ? "已创建用户 " + username : (r.error || "创建失败");
   if (r.ok) {
-    $("admNewUser").value = ""; $("admNewPass").value = ""; $("admNewQuota").value = "";
+    $("admNewUser").value = ""; $("admNewPass").value = "";
+    $("admNewQuota").value = ""; $("admNewMax").value = "";
   }
   loadAdmUsers();
 });
