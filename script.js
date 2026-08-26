@@ -58,16 +58,26 @@ function setProgress(msg, percent) {
 // 浏览器内提取音频：视频 -> mp3 (16k 单声道，省体积)
 async function extractAudio(file) {
   await loadFFmpeg();
-  // fetchFile 在全局 FFmpeg 对象上（0.11 主库导出），不能直接用 loadFFmpeg 内的局部变量
+  // 清理上一次可能残留的虚拟文件：连续处理不刷新时 FS 会保留旧文件，
+  // 若 output.mp3 已存在且缺少 -y，ffmpeg 会交互询问覆盖导致 wasm worker 卡死/崩溃
+  for (const f of ["input.mp4", "output.mp3"]) {
+    try { ffmpeg.FS("unlink", f); } catch (e) {}
+  }
   ffmpeg.FS("writeFile", "input.mp4", await FFmpeg.fetchFile(file));
   await ffmpeg.run(
+    "-y",  // 覆盖已存在输出，避免 wasm 下交互询问导致 worker 终止
     "-i", "input.mp4",
     "-vn", "-ac", "1", "-ar", "16000",
     "-b:a", "64k",
     "output.mp3"
   );
   const data = ffmpeg.FS("readFile", "output.mp3");
-  return new Blob([data.buffer], { type: "audio/mpeg" });
+  const blob = new Blob([data.buffer], { type: "audio/mpeg" });
+  // 用后释放，避免连续处理时 worker 内存累积导致崩溃
+  for (const f of ["input.mp4", "output.mp3"]) {
+    try { ffmpeg.FS("unlink", f); } catch (e) {}
+  }
+  return blob;
 }
 
 // ---- XHR 上传（带进度）----
@@ -294,6 +304,13 @@ function renderResult(json) {
       }
     }
   }
+  // 双语字幕 SRT（如有）：视频/带时间轴字幕翻译
+  window.__lastSrtBilingual = json.srt_bilingual || {};
+  for (const [lang, srt] of Object.entries(window.__lastSrtBilingual)) {
+    if (srt) {
+      ta.appendChild(makeCard(`🌐 ${LANG_NAMES_FE[lang] || lang}双语字幕(SRT)`, srt));
+    }
+  }
   $("resultArea").style.display = "block";
   $("resultArea").scrollIntoView({ behavior: "smooth" });
 }
@@ -344,6 +361,12 @@ $("downloadAllBtn").addEventListener("click", () => {
       if (typeof v === "string" && v) {
         out += "========== " + ln + (PLAT_NAMES[k] || k) + " ==========\n\n" + v + "\n\n";
       }
+    }
+  }
+  // 双语字幕 SRT（如有）
+  for (const [lang, srt] of Object.entries(window.__lastSrtBilingual || {})) {
+    if (srt) {
+      out += "========== " + (LANG_NAMES_FE[lang] || lang) + "双语字幕(SRT) ==========\n\n" + srt + "\n\n";
     }
   }
   const blob = new Blob([out], { type: "text/plain;charset=utf-8" });
