@@ -291,7 +291,7 @@ function renderResult(json) {
   window.__lastTranslations = json.translations || {};
   const ta = $("translationsArea");
   ta.innerHTML = "";
-  const LANG_NAMES_FE = { en: "英语", ja: "日语", ko: "韩语", fr: "法语", es: "西班牙语", de: "德语", ru: "俄语", pt: "葡萄牙语", it: "意大利语" };
+  const LANG_NAMES_FE = { zh: "中文", en: "英语", ja: "日语", ko: "韩语", fr: "法语", es: "西班牙语", de: "德语", ru: "俄语", pt: "葡萄牙语", it: "意大利语" };
   const PLAT_NAMES = { xiaohongshu: "小红书文案", gongzhonghao: "公众号文章", douyin: "抖音口播脚本" };
   for (const [lang, data] of Object.entries(window.__lastTranslations)) {
     const ln = LANG_NAMES_FE[lang] || lang;
@@ -353,7 +353,7 @@ $("downloadAllBtn").addEventListener("click", () => {
   }
   // 翻译内容（如有）
   const tr = (window.__lastTranslations || {});
-  const LANG_NAMES_FE = { en: "英语", ja: "日语", ko: "韩语", fr: "法语", es: "西班牙语", de: "德语", ru: "俄语", pt: "葡萄牙语", it: "意大利语" };
+  const LANG_NAMES_FE = { zh: "中文", en: "英语", ja: "日语", ko: "韩语", fr: "法语", es: "西班牙语", de: "德语", ru: "俄语", pt: "葡萄牙语", it: "意大利语" };
   const PLAT_NAMES = { subtitle: "字幕", xiaohongshu: "小红书文案", gongzhonghao: "公众号文章", douyin: "抖音口播脚本" };
   for (const [lang, data] of Object.entries(tr)) {
     const ln = LANG_NAMES_FE[lang] || lang;
