@@ -9,7 +9,7 @@
 <body>
   <header class="topbar">
     <h1>字幕 + 多平台文案</h1>
-    <p class="subtitle">上传视频，或粘贴字幕，一键生成小红书 / 公众号 / 抖音文案</p>
+    <p class="subtitle">上传视频 / 音频，或粘贴字幕，一键生成小红书 / 公众号 / 抖音文案</p>
   </header>
 
   <main class="container">
@@ -48,6 +48,7 @@
 
     <div class="tabs">
       <div class="tab active" data-tab="video">📹 上传视频</div>
+      <div class="tab" data-tab="audio">🎙️ 语音转文字</div>
       <div class="tab" data-tab="text">📝 字幕文本</div>
     </div>
 
@@ -78,6 +79,31 @@
         <label><input type="checkbox" class="lang-cb" value="es" /> 西班牙语</label>
       </div>
       <div id="modeHint" class="mode-hint"></div>
+    </section>
+
+    <!-- 语音模式：直接上传音频文件转文字（录音 / 播客 / 会议） -->
+    <section class="upload-card" id="panel-audio" style="display:none">
+      <label class="file-label">
+        <input type="file" id="audioFile" accept="audio/*,.mp3,.wav,.m4a,.aac,.flac,.ogg,.amr,.wma" />
+        <span id="audioFileName">选择音频文件（mp3 / wav / m4a / 录音）</span>
+      </label>
+      <button id="processAudioBtn" class="primary-btn">开始转文字</button>
+      <div class="plat-sel">
+        <span class="mode-hint">生成文案平台（不勾选 = 只转文字）：</span>
+        <label><input type="checkbox" class="plat-cb" value="xiaohongshu" /> 小红书</label>
+        <label><input type="checkbox" class="plat-cb" value="gongzhonghao" /> 公众号</label>
+        <label><input type="checkbox" class="plat-cb" value="douyin" /> 抖音</label>
+      </div>
+      <div class="plat-sel">
+        <span class="mode-hint">翻译成（不勾选 = 不翻译，每种语言 +1 分钟）：</span>
+        <label><input type="checkbox" class="lang-cb" value="zh" /> 中文</label>
+        <label><input type="checkbox" class="lang-cb" value="en" /> 英语</label>
+        <label><input type="checkbox" class="lang-cb" value="ja" /> 日语</label>
+        <label><input type="checkbox" class="lang-cb" value="ko" /> 韩语</label>
+        <label><input type="checkbox" class="lang-cb" value="fr" /> 法语</label>
+        <label><input type="checkbox" class="lang-cb" value="es" /> 西班牙语</label>
+      </div>
+      <div id="audioModeHint" class="mode-hint">支持录音、播客、会议音频：自动转文字，带时间轴，可一键生成文案。</div>
     </section>
 
     <!-- 文本模式：粘贴或上传 .srt/.txt -->
@@ -157,6 +183,6 @@
   <script src="https://ffmpeg-core-0801.oss-cn-beijing.aliyuncs.com/ffmpeg.min.js"></script>
   <!-- 阿里云 OSS SDK（大文件直传用） -->
   <script src="https://gosspublic.alicdn.com/aliyun-oss-sdk-6.18.0.min.js"></script>
-  <script src="script.js?v=12"></script>
+  <script src="script.js?v=13"></script>
 </body>
 </html>

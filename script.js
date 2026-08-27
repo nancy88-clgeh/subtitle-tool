@@ -7,16 +7,19 @@ const MAX_BROWSER_SIZE = 1024 * 1024 * 1024; // 1GB
 
 const $ = (id) => document.getElementById(id);
 
-// 当前可见面板勾选的文案平台（不勾=只出字幕）
+// 当前可见面板（三个 tab 各自独立勾选项）
+function currentPanel() {
+  return { video: "#panel-video", audio: "#panel-audio", text: "#panel-text" }[currentTab] || "#panel-video";
+}
+
+// 当前可见面板勾选的文案平台（不勾=只出字幕/文字）
 function getPlatforms() {
-  const panel = currentTab === "video" ? "#panel-video" : "#panel-text";
-  return [...document.querySelectorAll(panel + " .plat-cb:checked")].map((c) => c.value);
+  return [...document.querySelectorAll(currentPanel() + " .plat-cb:checked")].map((c) => c.value);
 }
 
 // 当前可见面板勾选的翻译目标语言（不勾=不翻译）
 function getTargetLangs() {
-  const panel = currentTab === "video" ? "#panel-video" : "#panel-text";
-  return [...document.querySelectorAll(panel + " .lang-cb:checked")].map((c) => c.value);
+  return [...document.querySelectorAll(currentPanel() + " .lang-cb:checked")].map((c) => c.value);
 }
 
 // ---------- 登录态 ----------
@@ -55,18 +58,23 @@ function setProgress(msg, percent) {
   }
 }
 
-// 浏览器内提取音频：视频 -> mp3 (16k 单声道，省体积)
+// 浏览器内统一转码：视频 / 音频 -> mp3 (16k 单声道，Paraformer 标准输入)
 async function extractAudio(file) {
   await loadFFmpeg();
+  // 输入名保留真实扩展名，ffmpeg 按扩展名 + 内容探测格式（mp3/wav/m4a/aac 等直接可解）
+  const dot = file.name.lastIndexOf(".");
+  let ext = dot >= 0 ? file.name.slice(dot + 1).toLowerCase() : "";
+  ext = ext.replace(/[^a-z0-9]/g, "");
+  const inputName = "input." + (ext || "mp4");
   // 清理上一次可能残留的虚拟文件：连续处理不刷新时 FS 会保留旧文件，
   // 若 output.mp3 已存在且缺少 -y，ffmpeg 会交互询问覆盖导致 wasm worker 卡死/崩溃
-  for (const f of ["input.mp4", "output.mp3"]) {
+  for (const f of ["input.mp4", "input.mp3", "input.wav", "input.m4a", inputName, "output.mp3"]) {
     try { ffmpeg.FS("unlink", f); } catch (e) {}
   }
-  ffmpeg.FS("writeFile", "input.mp4", await FFmpeg.fetchFile(file));
+  ffmpeg.FS("writeFile", inputName, await FFmpeg.fetchFile(file));
   await ffmpeg.run(
     "-y",  // 覆盖已存在输出，避免 wasm 下交互询问导致 worker 终止
-    "-i", "input.mp4",
+    "-i", inputName,
     "-vn", "-ac", "1", "-ar", "16000",
     "-b:a", "64k",
     "output.mp3"
@@ -74,7 +82,7 @@ async function extractAudio(file) {
   const data = ffmpeg.FS("readFile", "output.mp3");
   const blob = new Blob([data.buffer], { type: "audio/mpeg" });
   // 用后释放，避免连续处理时 worker 内存累积导致崩溃
-  for (const f of ["input.mp4", "output.mp3"]) {
+  for (const f of [inputName, "output.mp3"]) {
     try { ffmpeg.FS("unlink", f); } catch (e) {}
   }
   return blob;
@@ -131,14 +139,14 @@ async function getUploadUrl(filename) {
   return json; // { upload_url, object_key }
 }
 
-// ---- 小文件流程：浏览器提取音频后 POST ----
+// ---- 小文件流程：浏览器转码音频后 POST（视频 / 纯音频通用）----
 async function processSmall(file) {
-  setProgress("① 正在浏览器内提取音频...", 5);
+  setProgress("① 正在浏览器内转码音频...", 5);
   const audioBlob = await extractAudio(file);
-  setProgress("② 正在上传并生成文案...", 30);
+  setProgress("② 正在上传并生成内容...", 30);
   const form = new FormData();
   form.append("audio", audioBlob, "audio.mp3");
-  form.append("duration_sec", String(window.__videoDuration || 0));
+  form.append("duration_sec", String(window.__mediaDuration || 0));
   form.append("platforms", JSON.stringify(getPlatforms()));
   form.append("target_langs", JSON.stringify(getTargetLangs()));
   const json = await xhrPostForm(
@@ -164,7 +172,7 @@ async function processLarge(file) {
   const resp = await fetch(API_BASE + "/api/process-video", {
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify({ object_key, duration_sec: window.__videoDuration || 0, platforms: getPlatforms(), target_langs: getTargetLangs() }),
+    body: JSON.stringify({ object_key, duration_sec: window.__mediaDuration || 0, platforms: getPlatforms(), target_langs: getTargetLangs() }),
   });
   const json = await resp.json();
   if (json.error) throw new Error(json.error);
@@ -179,6 +187,7 @@ document.querySelectorAll(".tab").forEach((t) => {
     document.querySelectorAll(".tab").forEach((x) => x.classList.remove("active"));
     t.classList.add("active");
     $("panel-video").style.display = currentTab === "video" ? "block" : "none";
+    $("panel-audio").style.display = currentTab === "audio" ? "block" : "none";
     $("panel-text").style.display = currentTab === "text" ? "block" : "none";
   });
 });
@@ -188,12 +197,26 @@ $("videoFile").addEventListener("change", (e) => {
   const f = e.target.files[0];
   $("fileName").textContent = f ? f.name : "选择视频文件";
   $("modeHint").textContent = "";
-  window.__videoDuration = 0;
+  window.__mediaDuration = 0;
   if (f && f.type.startsWith("video/")) {
     const v = document.createElement("video");
     v.preload = "metadata";
-    v.onloadedmetadata = () => { window.__videoDuration = v.duration || 0; };
+    v.onloadedmetadata = () => { window.__mediaDuration = v.duration || 0; };
     v.src = URL.createObjectURL(f);
+  }
+});
+
+// 音频文件选择：用 <audio> 元素读取时长（用于额度计算）
+$("audioFile").addEventListener("change", (e) => {
+  const f = e.target.files[0];
+  $("audioFileName").textContent = f ? f.name : "选择音频文件（mp3 / wav / m4a / 录音）";
+  $("audioModeHint").textContent = "";
+  window.__mediaDuration = 0;
+  if (f) {
+    const a = document.createElement("audio");
+    a.preload = "metadata";
+    a.onloadedmetadata = () => { window.__mediaDuration = a.duration || 0; };
+    a.src = URL.createObjectURL(f);
   }
 });
 
@@ -211,18 +234,24 @@ async function onProcess(btn) {
   btn.disabled = true;
   try {
     let json;
-    if (currentTab === "video") {
-      const file = $("videoFile").files[0];
-      if (!file) { alert("请先选择视频文件"); btn.disabled = false; return; }
+    if (currentTab === "video" || currentTab === "audio") {
+      // 视频 / 纯音频共用流程：浏览器转码（或大文件云端转码）-> /api/process(-video)
+      const isAudioTab = currentTab === "audio";
+      const file = $(isAudioTab ? "audioFile" : "videoFile").files[0];
+      const hintEl = $(isAudioTab ? "audioModeHint" : "modeHint");
+      if (!file) {
+        alert(isAudioTab ? "请先选择音频文件" : "请先选择视频文件");
+        btn.disabled = false; return;
+      }
       const platHint = (() => {
         const n = getPlatforms().length;
-        return n ? `，将生成 ${n} 篇文案` : "，仅生成字幕";
+        return n ? `，将生成 ${n} 篇文案` : (isAudioTab ? "，仅转文字" : "，仅生成字幕");
       })();
       if (file.size <= MAX_BROWSER_SIZE) {
-        $("modeHint").textContent = "小文件模式：浏览器本地提取音频（快、省）" + platHint;
+        hintEl.textContent = "本地模式：浏览器内转码（快、省流量）" + platHint;
         json = await processSmall(file);
       } else {
-        $("modeHint").textContent = "大文件模式：直传云端处理（>1GB 自动切换）" + platHint;
+        hintEl.textContent = "大文件模式：直传云端处理（>1GB 自动切换）" + platHint;
         json = await processLarge(file);
       }
     } else {
@@ -251,6 +280,7 @@ async function onProcess(btn) {
 }
 
 $("processBtn").addEventListener("click", () => onProcess($("processBtn")));
+$("processAudioBtn").addEventListener("click", () => onProcess($("processAudioBtn")));
 $("processTextBtn").addEventListener("click", () => onProcess($("processTextBtn")));
 
 function makeCard(title, text) {
