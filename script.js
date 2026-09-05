@@ -61,31 +61,40 @@ function setProgress(msg, percent) {
 // 浏览器内统一转码：视频 / 音频 -> mp3 (16k 单声道，Paraformer 标准输入)
 async function extractAudio(file) {
   await loadFFmpeg();
-  // 输入名保留真实扩展名，ffmpeg 按扩展名 + 内容探测格式（mp3/wav/m4a/aac 等直接可解）
-  const dot = file.name.lastIndexOf(".");
-  let ext = dot >= 0 ? file.name.slice(dot + 1).toLowerCase() : "";
-  ext = ext.replace(/[^a-z0-9]/g, "");
-  const inputName = "input." + (ext || "mp4");
-  // 清理上一次可能残留的虚拟文件：连续处理不刷新时 FS 会保留旧文件，
-  // 若 output.mp3 已存在且缺少 -y，ffmpeg 会交互询问覆盖导致 wasm worker 卡死/崩溃
-  for (const f of ["input.mp4", "input.mp3", "input.wav", "input.m4a", inputName, "output.mp3"]) {
-    try { ffmpeg.FS("unlink", f); } catch (e) {}
+  try {
+    // 输入名保留真实扩展名，ffmpeg 按扩展名 + 内容探测格式（mp3/wav/m4a/aac 等直接可解）
+    const dot = file.name.lastIndexOf(".");
+    let ext = dot >= 0 ? file.name.slice(dot + 1).toLowerCase() : "";
+    ext = ext.replace(/[^a-z0-9]/g, "");
+    const inputName = "input." + (ext || "mp4");
+    // 清理上一次可能残留的虚拟文件：连续处理不刷新时 FS 会保留旧文件，
+    // 若 output.mp3 已存在且缺少 -y，ffmpeg 会交互询问覆盖导致 wasm worker 卡死/崩溃
+    for (const f of ["input.mp4", "input.mp3", "input.wav", "input.m4a", inputName, "output.mp3"]) {
+      try { ffmpeg.FS("unlink", f); } catch (e) {}
+    }
+    ffmpeg.FS("writeFile", inputName, await FFmpeg.fetchFile(file));
+    await ffmpeg.run(
+      "-y",  // 覆盖已存在输出，避免 wasm 下交互询问导致 worker 终止
+      "-i", inputName,
+      "-vn", "-ac", "1", "-ar", "16000",
+      "-b:a", "64k",
+      "output.mp3"
+    );
+    const data = ffmpeg.FS("readFile", "output.mp3");
+    const blob = new Blob([data.buffer], { type: "audio/mpeg" });
+    // 用后释放，避免连续处理时 worker 内存累积导致崩溃
+    for (const f of [inputName, "output.mp3"]) {
+      try { ffmpeg.FS("unlink", f); } catch (e) {}
+    }
+    return blob;
+  } finally {
+    // 每次用完销毁 worker，下次调用 extractAudio 重新 load —— 关键：
+    // ffmpeg.wasm 0.11 单线程 worker 跑完一次后内部状态/内存无法在 JS 侧彻底释放，
+    // 连续第二次必现 "Program terminated with exit(0)"。销毁重建是唯一稳定解法，
+    // 代价是每条视频多 ~1-2s 重新加载 core（可接受，换稳定）。
+    try { ffmpeg.terminate(); } catch (e) {}
+    ffmpeg = null;
   }
-  ffmpeg.FS("writeFile", inputName, await FFmpeg.fetchFile(file));
-  await ffmpeg.run(
-    "-y",  // 覆盖已存在输出，避免 wasm 下交互询问导致 worker 终止
-    "-i", inputName,
-    "-vn", "-ac", "1", "-ar", "16000",
-    "-b:a", "64k",
-    "output.mp3"
-  );
-  const data = ffmpeg.FS("readFile", "output.mp3");
-  const blob = new Blob([data.buffer], { type: "audio/mpeg" });
-  // 用后释放，避免连续处理时 worker 内存累积导致崩溃
-  for (const f of [inputName, "output.mp3"]) {
-    try { ffmpeg.FS("unlink", f); } catch (e) {}
-  }
-  return blob;
 }
 
 // ---- XHR 上传（带进度）----
